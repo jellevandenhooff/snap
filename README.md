@@ -13,26 +13,26 @@ hash, it can be annoying to write the correct expected value in the source:
 package example_test
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"testing"
+    "crypto/sha256"
+    "encoding/hex"
+    "testing"
 
-	"github.com/jellevandenhooff/snap"
+    "github.com/jellevandenhooff/snap"
 )
 
 func complicated(s string) string {
-	b := sha256.Sum256([]byte(s))
-	return hex.EncodeToString(b[:16])
+    b := sha256.Sum256([]byte(s))
+    return hex.EncodeToString(b[:16])
 }
 
 func TestSnapshot(t *testing.T) {
-	actual := complicated("complicated value")
+    actual := complicated("complicated value")
     expected := snap.Source("")
-	snap.CheckString(t, actual, expected)
+    snap.CheckString(t, actual, expected)
 }
 
 func TestMain(m *testing.M) {
-	snap.Run(m)
+    snap.Run(m)
 }
 ```
 
@@ -55,7 +55,7 @@ PASS
 
 Now the test has been updated to include:
 ```go
-	expected := snap.Source(`2d5a34155bd3feb0728c3198c41250db`)
+expected := snap.Source(`2d5a34155bd3feb0728c3198c41250db`)
 ```
 
 And tests pass:
