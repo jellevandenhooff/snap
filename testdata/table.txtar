@@ -1,0 +1,91 @@
+# fail tests
+! exec go test -v
+stdout 'expected'
+
+# update snapshots
+exec go test -update-snapshots
+
+# now pass
+exec go test
+
+# should match golden
+cmp table_test.go table_test.go.golden
+
+-- table_test.go --
+package behavior_test
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"testing"
+
+	"github.com/jellevandenhooff/snap"
+)
+
+func complicated(s string) string {
+	b := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(b[:16])
+}
+
+func TestHello(t *testing.T) {
+	cases := []struct {
+		a string
+		b *snap.Snapshot
+	}{
+		{
+			a: "hello",
+			b: snap.Source(``),
+		},
+		{
+			a: "goodbye",
+			b: snap.Source(``),
+		},
+	}
+
+	for _, c := range cases {
+		snap.CheckString(t, complicated(c.a), c.b)
+	}
+}
+
+func TestMain(m *testing.M) {
+	snap.Run(m)
+}
+-- table_test.go.golden --
+package behavior_test
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"testing"
+
+	"github.com/jellevandenhooff/snap"
+)
+
+func complicated(s string) string {
+	b := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(b[:16])
+}
+
+func TestHello(t *testing.T) {
+	cases := []struct {
+		a string
+		b *snap.Snapshot
+	}{
+		{
+			a: "hello",
+			b: snap.Source(`2cf24dba5fb0a30e26e83b2ac5b9e29e`),
+		},
+		{
+			a: "goodbye",
+			b: snap.Source(`82e35a63ceba37e9646434c5dd412ea5`),
+		},
+	}
+
+	for _, c := range cases {
+		snap.CheckString(t, complicated(c.a), c.b)
+	}
+}
+
+func TestMain(m *testing.M) {
+	snap.Run(m)
+}

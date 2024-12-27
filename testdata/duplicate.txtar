@@ -1,0 +1,51 @@
+# fail tests
+! exec go test -v
+stdout 'two calls to'
+
+# update snapshots
+! exec go test -update-snapshots
+stdout 'two calls to'
+
+# still fails
+! exec go test
+stdout 'two calls to'
+
+# should match golden
+cmp duplicate_test.go duplicate_test.go.golden
+
+-- duplicate_test.go --
+package behavior_test
+
+import (
+	"testing"
+
+	"github.com/jellevandenhooff/snap"
+)
+
+func TestDuplicate(t *testing.T) {
+	a, b := snap.Source("a"), snap.Source("b")
+	snap.CheckString(t, "aaa", a)
+	snap.CheckString(t, "bbb", b)
+}
+
+func TestMain(m *testing.M) {
+	snap.Run(m)
+}
+-- duplicate_test.go.golden --
+package behavior_test
+
+import (
+	"testing"
+
+	"github.com/jellevandenhooff/snap"
+)
+
+func TestDuplicate(t *testing.T) {
+	a, b := snap.Source("a"), snap.Source("b")
+	snap.CheckString(t, "aaa", a)
+	snap.CheckString(t, "bbb", b)
+}
+
+func TestMain(m *testing.M) {
+	snap.Run(m)
+}

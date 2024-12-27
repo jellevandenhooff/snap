@@ -1,0 +1,57 @@
+# fail tests
+! exec go test -v
+stdout 'expected.*huh'
+
+# update snapshots
+exec go test -update-snapshots
+
+# now pass
+exec go test
+
+# should match golden
+cmp json_test.go json_test.go.golden
+
+-- json_test.go --
+package behavior_test
+
+import (
+	"testing"
+
+	"github.com/jellevandenhooff/snap"
+)
+
+func TestJSON(t *testing.T) {
+	snap.CheckJSON(t, map[string]any{
+		"a": []string{"huh", "ok"},
+		"b": 3,
+	}, snap.Source(""))
+}
+
+func TestMain(m *testing.M) {
+	snap.Run(m)
+}
+-- json_test.go.golden --
+package behavior_test
+
+import (
+	"testing"
+
+	"github.com/jellevandenhooff/snap"
+)
+
+func TestJSON(t *testing.T) {
+	snap.CheckJSON(t, map[string]any{
+		"a": []string{"huh", "ok"},
+		"b": 3,
+	}, snap.Source(`{
+		"a": [
+			"huh",
+			"ok"
+		],
+		"b": 3
+	}`))
+}
+
+func TestMain(m *testing.M) {
+	snap.Run(m)
+}

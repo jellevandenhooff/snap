@@ -1,0 +1,45 @@
+# fail tests
+! exec go test -v
+stdout 'hallo'
+
+# update snapshots
+exec go test -update-snapshots
+
+# now pass
+exec go test
+
+# should match golden
+cmp basic_test.go basic_test.go.golden
+
+-- basic_test.go --
+package behavior_test
+
+import (
+	"testing"
+
+	"github.com/jellevandenhooff/snap"
+)
+
+func TestBasic(t *testing.T) {
+	snap.CheckString(t, "hallo", snap.Source(""))
+}
+
+func TestMain(m *testing.M) {
+	snap.Run(m)
+}
+-- basic_test.go.golden --
+package behavior_test
+
+import (
+	"testing"
+
+	"github.com/jellevandenhooff/snap"
+)
+
+func TestBasic(t *testing.T) {
+	snap.CheckString(t, "hallo", snap.Source(`hallo`))
+}
+
+func TestMain(m *testing.M) {
+	snap.Run(m)
+}

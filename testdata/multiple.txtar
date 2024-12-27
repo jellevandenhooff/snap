@@ -1,0 +1,53 @@
+# fail tests
+! exec go test -v
+stdout 'expected.*bad'
+stdout 'snapshot compare invoked more than once'
+
+# update snapshots
+! exec go test -update-snapshots
+stdout 'snapshot compare invoked more than once'
+
+# still fails, with snapshot as before
+! exec go test
+stdout 'expected.*bad'
+stdout 'snapshot compare invoked more than once'
+
+# should match golden
+cmp multiple_test.go multiple_test.go.golden
+
+-- multiple_test.go --
+package behavior_test
+
+import (
+	"testing"
+
+	"github.com/jellevandenhooff/snap"
+)
+
+func TestMultiple(t *testing.T) {
+	snapshot := snap.Source("bad")
+	snap.CheckString(t, "hallo", snapshot)
+	snap.CheckString(t, "goodbye", snapshot)
+}
+
+func TestMain(m *testing.M) {
+	snap.Run(m)
+}
+-- multiple_test.go.golden --
+package behavior_test
+
+import (
+	"testing"
+
+	"github.com/jellevandenhooff/snap"
+)
+
+func TestMultiple(t *testing.T) {
+	snapshot := snap.Source("bad")
+	snap.CheckString(t, "hallo", snapshot)
+	snap.CheckString(t, "goodbye", snapshot)
+}
+
+func TestMain(m *testing.M) {
+	snap.Run(m)
+}

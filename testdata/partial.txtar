@@ -1,0 +1,63 @@
+# fail tests
+! exec go test -v -run TestA
+stdout 'expected.*hello'
+! stdout 'bye'
+
+# update snapshots
+exec go test -update-snapshots -run TestA
+
+# now pass
+exec go test -run TestA
+
+# but still fail all
+! exec go test -v
+
+# update others
+exec go test -update-snapshots -run TestB
+
+# now pass all
+exec go test -v
+
+# should match golden
+cmp partial_test.go partial_test.go.golden
+
+-- partial_test.go --
+package behavior_test
+
+import (
+	"testing"
+
+	"github.com/jellevandenhooff/snap"
+)
+
+func TestA(t *testing.T) {
+	snap.CheckString(t, "hello", snap.Source(""))
+}
+
+func TestB(t *testing.T) {
+	snap.CheckString(t, "bye", snap.Source(""))
+}
+
+func TestMain(m *testing.M) {
+	snap.Run(m)
+}
+-- partial_test.go.golden --
+package behavior_test
+
+import (
+	"testing"
+
+	"github.com/jellevandenhooff/snap"
+)
+
+func TestA(t *testing.T) {
+	snap.CheckString(t, "hello", snap.Source(`hello`))
+}
+
+func TestB(t *testing.T) {
+	snap.CheckString(t, "bye", snap.Source(`bye`))
+}
+
+func TestMain(m *testing.M) {
+	snap.Run(m)
+}
