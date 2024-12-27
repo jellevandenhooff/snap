@@ -39,6 +39,7 @@ import (
 	"fmt"
 	"go/scanner"
 	"go/token"
+	"io"
 	"log"
 	"os"
 	"runtime"
@@ -111,6 +112,8 @@ func format(s string, indent int) string {
 type tok struct {
 	token   token.Token
 	literal string
+	line    int
+	offset  int
 }
 
 func (s *shots) updateFile(file string) error {
@@ -132,56 +135,54 @@ func (s *shots) updateFile(file string) error {
 		parseError = fmt.Errorf("failed to parse %s: %s", pos, msg)
 	}, scanner.ScanComments)
 
+	nextToken := func() (tok, error) {
+		pos, kind, lit := sc.Scan()
+		if parseError != nil {
+			return tok{}, parseError
+		}
+		return tok{
+			token:   kind,
+			literal: lit,
+			line:    f.Line(pos),
+			offset:  f.Offset(pos),
+		}, nil
+	}
+
 	// processing state:
-	var out bytes.Buffer // modified source
-	prevOffset := 0      // last offset copied
-	openParens := 0      // number of openParens inside a snap.Source( call
-	match := [4]tok{     // tokens we are looking for
+
+	// modified source
+	var out bytes.Buffer
+	// last offset copied
+	prevOffset := 0
+
+	// tokens we are looking for
+	match := [4]tok{
 		{token: token.IDENT, literal: "snap"},
 		{token: token.PERIOD},
 		{token: token.IDENT, literal: "Source"},
 		{token: token.LPAREN},
 	}
-	var recent [len(match)]tok // recently read tokens
+	// recently read tokens
+	var recent [len(match)]tok
 
 	for {
-		pos, kind, lit := sc.Scan()
-		if parseError != nil {
-			return parseError
+		next, err := nextToken()
+		if err != nil {
+			return err
 		}
-		if kind == token.EOF {
+		if next.token == token.EOF {
 			break
 		}
 
 		copy(recent[0:], recent[1:])
-		recent[len(recent)-1] = tok{
-			token:   kind,
-			literal: lit,
-		}
+		recent[len(recent)-1] = tok{token: next.token, literal: next.literal} // drop source info
 
-		// inside a call to snap.Source: skip until we find
-		// a matching closing paren
-		if openParens != 0 {
-			switch {
-			case kind == token.LPAREN:
-				openParens++
-			case kind == token.RPAREN:
-				openParens--
-			}
-
-			if openParens == 0 {
-				prevOffset = f.Offset(pos) + 1
-			}
-			continue
-		}
-
-		// otherwise, looking for snap.Source(:
 		if recent != match {
 			continue
 		}
 
 		// found snapshot; only update if we have a single new value from a test
-		line := f.Line(pos)
+		line := next.line
 		shot, ok := s.byLocation[location{file: file, line: line}]
 		if !ok || !shot.hasActual || shot.calledMultiple {
 			continue
@@ -190,14 +191,11 @@ func (s *shots) updateFile(file string) error {
 		// mark the shot as updated
 		shot.updated = true
 
-		// track number of open parens to identify the matching closing paren
-		openParens = 1
-
 		// maybe figure out indentation to add
 		indent := 0
 		if shot.indentOk {
 			// scan backwards until we find a newline; then count tabs
-			offset := f.Offset(pos)
+			offset := next.offset
 			for offset > 0 {
 				r, n := utf8.DecodeLastRune(source[:offset])
 				if r == '\n' {
@@ -214,12 +212,31 @@ func (s *shots) updateFile(file string) error {
 		formatted := format(shot.actual, indent)
 
 		// copy all non-snapshot code verbatim
-		out.Write(source[prevOffset:f.Offset(pos)])
+		out.Write(source[prevOffset:next.offset])
 
 		// write the new value
 		out.WriteString("(")
 		out.WriteString(formatted)
 		out.WriteString(")")
+
+		// consume everything inside the parenthesis
+		depth := 1
+		for depth != 0 {
+			next, err = nextToken()
+			if err != nil {
+				return err
+			}
+			if next.token == token.EOF {
+				return io.ErrUnexpectedEOF
+			}
+			switch next.token {
+			case token.LPAREN:
+				depth++
+			case token.RPAREN:
+				depth--
+			}
+		}
+		prevOffset = next.offset + 1
 	}
 
 	// copy all non-snapshot code verbatim
