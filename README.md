@@ -1,5 +1,5 @@
 # Snap: Source-based snapshot tests for Go
-[![Go Reference](https:pkg.go.dev/badge/github.com/jellevandenhooff/snap.svg)](https://pkg.go.dev/github.com/jellevandenhooff/snap)
+[![Go Reference](https://pkg.go.dev/badge/github.com/jellevandenhooff/snap.svg)](https://pkg.go.dev/github.com/jellevandenhooff/snap)
 
 Snap is a package for automatically updating source-based snapshots tests.
 A common pattern for Go tests is to store expected outputs in a "golden"
