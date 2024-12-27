@@ -60,6 +60,12 @@ expected := snap.Source(`2d5a34155bd3feb0728c3198c41250db`)
 
 And tests pass:
 ```
-go test
+> go test
 PASS
 ```
+
+# In other languages
+
+This package was inspired by source-based snapshot tests in other languages.
+In Rust there is [expect-test](https://docs.rs/expect-test/latest/expect_test/index.html)
+and in Ocaml there is ["%expect"](https://blog.janestreet.com/the-joy-of-expect-tests/).
